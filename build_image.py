@@ -1,131 +1,121 @@
 #!/usr/bin/env python3
-"""Build the 18 Nov 2026 world-news summary image (1024x1024 PNG).
+"""Render the Wednesday 18 November 2026 front page as a 1024x1024 PNG.
 
-Deterministic: fixed text, fixed layout, no network, no randomness.
-Run locally only; main.py in the entry repo just copies entry.png.
+Everything is fixed: the six stories, the layout, the fonts. Running this
+script twice writes byte-identical files. It only runs on my own machine;
+the entry itself (main.py) just copies the finished entry.png.
 """
-from PIL import Image, ImageDraw, ImageFont
 
-W, H = 1024, 1024
-BG = (253, 246, 227)
-INK = (17, 17, 17)
-RED = (178, 34, 34)
-GREY = (90, 90, 90)
-YELLOW = (255, 210, 0)
+from PIL import Image as PILImage, ImageDraw, ImageFont
 
-SERIF_B = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
-SANS_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-SANS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+PAGE_W, PAGE_H = 1024, 1024
+PAPER = (253, 246, 227)
+BLACK = (17, 17, 17)
+RUST = (178, 34, 34)
+MUTE = (90, 90, 90)
+GOLD = (255, 210, 0)
+WHITE = (255, 255, 255)
+
+SERIF_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
+SANS_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+SANS_PLAIN = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+
+MARGIN = 24
+
+STORIES = [
+    {"head": "1  US–IRAN CLASH ESCALATES",
+     "body": "The US says it destroyed five Iranian tankers overnight; Iran strikes ships and a US base in Jordan as Gulf shipping braces for more."},
+    {"head": "2  KERCH BRIDGE HIT A SECOND NIGHT",
+     "body": "Ukraine strikes the Crimea bridge again while Russia hits bridges in Kyiv, days before a summit of Trump, Putin and Xi."},
+    {"head": "3  CYCLONE AKVAN BEARS DOWN",
+     "body": "The storm strengthens over the Bay of Bengal and is set to cross the Andhra Pradesh coast around noon on Friday 20 November."},
+    {"head": "4  NVIDIA DOUBLES REVENUE",
+     "body": "The chip giant reports $115.8 billion for the quarter, up 103% on a year earlier, and its board rules out Huang's return."},
+    {"head": "5  COP31 ENTERS DECISIVE PHASE",
+     "body": "Climate negotiators in Antalya work through a draft deal with 144 disputed items as the summit heads for its Friday close."},
+    {"head": "6  PATTINSON IS THE NEW BOND",
+     "body": "British actor Robert Pattinson is named the next James Bond, taking over 007."},
+]
 
 
-def font(path, size):
+def load(path, size):
     return ImageFont.truetype(path, size)
 
 
-def wrap(draw, text, f, max_w):
-    words = text.split()
-    lines, cur = [], ""
-    for w in words:
-        t = (cur + " " + w).strip()
-        if draw.textlength(t, font=f) <= max_w:
-            cur = t
+def split_lines(canvas, text, face, width):
+    out = []
+    current = ""
+    for word in text.split():
+        trial = f"{current} {word}".strip()
+        if canvas.textlength(trial, font=face) <= width:
+            current = trial
+        elif current:
+            out.append(current)
+            current = word
         else:
-            if cur:
-                lines.append(cur)
-            cur = w
-    if cur:
-        lines.append(cur)
-    return lines
+            current = word
+    if current:
+        out.append(current)
+    return out
 
 
-def text_block(draw, x, y, lines, f, fill=INK, lh=None):
-    if lh is None:
-        lh = int(f.size * 1.25)
-    for ln in lines:
-        draw.text((x, y), ln, font=f, fill=fill)
-        y += lh
+def draw_lines(canvas, x, y, lines, face, color, spacing=None):
+    step = spacing if spacing is not None else int(face.size * 1.25)
+    for line in lines:
+        canvas.text((x, y), line, font=face, fill=color)
+        y += step
     return y
 
 
-img = Image.new("RGB", (W, H), BG)
-d = ImageDraw.Draw(img)
+canvas = PILImage.new("RGB", (PAGE_W, PAGE_H), PAPER)
+pen = ImageDraw.Draw(canvas)
 
-# top bar
-d.rectangle([0, 0, W, 44], fill=INK)
-d.text((24, 10), "WEDNESDAY 18 NOVEMBER 2026", font=font(SANS_B, 22), fill=(255, 255, 255))
-right = "THE WORLD IN ONE IMAGE"
-d.text((W - 24 - d.textlength(right, font=font(SANS_B, 22)), 10),
-       right, font=font(SANS_B, 22), fill=YELLOW)
+pen.rectangle([0, 0, PAGE_W, 44], fill=BLACK)
+pen.text((MARGIN, 10), "WEDNESDAY 18 NOVEMBER 2026", font=load(SANS_BOLD, 22), fill=WHITE)
+tag = "THE WORLD IN ONE IMAGE"
+pen.text((PAGE_W - MARGIN - pen.textlength(tag, font=load(SANS_BOLD, 22)), 10),
+         tag, font=load(SANS_BOLD, 22), fill=GOLD)
 
-# masthead
-y = 62
-d.text((24, y), "THE WORLD", font=font(SERIF_B, 108), fill=INK)
-y += 118
-d.text((24, y), "One day, six stories  —  Wednesday 18 November 2026",
-       font=font(SANS_B, 26), fill=RED)
-y += 44
-d.line([(24, y), (W - 24, y)], fill=INK, width=4)
-y += 18
+top = 62
+pen.text((MARGIN, top), "THE WORLD", font=load(SERIF_BOLD, 108), fill=BLACK)
+top += 118
+pen.text((MARGIN, top), "One day, six stories  —  Wednesday 18 November 2026",
+         font=load(SANS_BOLD, 26), fill=RUST)
+top += 44
+pen.line([(MARGIN, top), (PAGE_W - MARGIN, top)], fill=BLACK, width=4)
+top += 18
 
-stories = [
-    ("1  US–IRAN CLASH ESCALATES",
-     "The US says it destroyed five Iranian tankers overnight; Iran strikes ships and a US base in Jordan as Gulf shipping braces for more.",
-     True),
-    ("2  KERCH BRIDGE HIT A SECOND NIGHT",
-     "Ukraine strikes the Crimea bridge again while Russia hits bridges in Kyiv, days before a summit of Trump, Putin and Xi.",
-     False),
-    ("3  CYCLONE AKVAN BEARS DOWN",
-     "The storm strengthens over the Bay of Bengal and is set to cross the Andhra Pradesh coast around noon on Friday 20 November.",
-     False),
-    ("4  NVIDIA DOUBLES REVENUE",
-     "The chip giant reports $115.8 billion for the quarter, up 103% on a year earlier, and its board rules out Huang's return.",
-     False),
-    ("5  COP31 ENTERS DECISIVE PHASE",
-     "Climate negotiators in Antalya work through a draft deal with 144 disputed items as the summit heads for its Friday close.",
-     False),
-    ("6  PATTINSON IS THE NEW BOND",
-     "British actor Robert Pattinson is named the next James Bond, taking over 007.",
-     False),
-]
+lead = STORIES[0]
+lead_lines = split_lines(pen, lead["body"], load(SANS_PLAIN, 24), PAGE_W - 80)
+lead_h = 34 + len(lead_lines) * 30 + 28
+pen.rectangle([MARGIN, top, PAGE_W - MARGIN, top + lead_h], outline=RUST, width=3)
+pen.text((40, top + 14), lead["head"], font=load(SANS_BOLD, 32), fill=RUST)
+draw_lines(pen, 40, top + 60, lead_lines, load(SANS_PLAIN, 24), BLACK, 30)
+top += lead_h + 16
 
-# lead story
-title, body, _ = stories[0]
-f_t = font(SANS_B, 32)
-f_b = font(SANS, 24)
-lines = wrap(d, body, f_b, W - 80)
-box_h = 34 + len(lines) * 30 + 28
-d.rectangle([24, y, W - 24, y + box_h], outline=RED, width=3)
-yy = y + 14
-d.text((40, yy), title, font=f_t, fill=RED)
-yy += 46
-text_block(d, 40, yy, lines, f_b, lh=30)
-y = y + box_h + 16
+cell_w = (PAGE_W - 48 - 16) // 2
+cell_h = 168
+for pos, story in enumerate(STORIES[1:5]):
+    gx = MARGIN + (pos % 2) * (cell_w + 16)
+    gy = top + (pos // 2) * (cell_h + 16)
+    pen.rectangle([gx, gy, gx + cell_w, gy + cell_h], outline=BLACK, width=2)
+    head_lines = split_lines(pen, story["head"], load(SANS_BOLD, 19), cell_w - 28)[:2]
+    draw_lines(pen, gx + 14, gy + 10, head_lines, load(SANS_BOLD, 19), BLACK, 23)
+    body_lines = split_lines(pen, story["body"], load(SANS_PLAIN, 19), cell_w - 28)[:4]
+    draw_lines(pen, gx + 14, gy + 10 + len(head_lines) * 23 + 8,
+               body_lines, load(SANS_PLAIN, 19), BLACK, 24)
+top += 2 * cell_h + 16 + 16
 
-# 2x2 grid for stories 2-5
-grid = stories[1:5]
-col_w = (W - 48 - 16) // 2
-row_h = 168
-for i, (t, b, _) in enumerate(grid):
-    gx = 24 + (i % 2) * (col_w + 16)
-    gy = y + (i // 2) * (row_h + 16)
-    d.rectangle([gx, gy, gx + col_w, gy + row_h], outline=INK, width=2)
-    tl = wrap(d, t, font(SANS_B, 19), col_w - 28)
-    text_block(d, gx + 14, gy + 10, tl[:2], font(SANS_B, 19), lh=23)
-    bl = wrap(d, b, font(SANS, 19), col_w - 28)
-    text_block(d, gx + 14, gy + 10 + len(tl[:2]) * 23 + 8, bl[:4], font(SANS, 19), lh=24)
-y = y + 2 * row_h + 16 + 16
+last = STORIES[5]
+pen.rectangle([MARGIN, top, PAGE_W - MARGIN, top + 108], fill=BLACK)
+pen.text((40, top + 12), last["head"], font=load(SANS_BOLD, 24), fill=GOLD)
+tail_lines = split_lines(pen, last["body"], load(SANS_PLAIN, 20), PAGE_W - 80)
+draw_lines(pen, 40, top + 48, tail_lines, load(SANS_PLAIN, 20), WHITE, 26)
+top += 108 + 14
 
-# bottom story
-t, b, _ = stories[5]
-d.rectangle([24, y, W - 24, y + 108], fill=INK)
-d.text((40, y + 12), t, font=font(SANS_B, 24), fill=YELLOW)
-bl = wrap(d, b, font(SANS, 20), W - 80)
-text_block(d, 40, y + 48, bl, font(SANS, 20), fill=(255, 255, 255), lh=26)
-y = y + 108 + 14
+pen.text((MARGIN, PAGE_H - 34),
+         "Sources: AP, Reuters, BBC, Al Jazeera, CNBC  —  18 Nov 2026",
+         font=load(SANS_PLAIN, 18), fill=MUTE)
 
-# footer
-d.text((24, H - 34), "Sources: AP, Reuters, BBC, Al Jazeera, CNBC  —  18 Nov 2026",
-       font=font(SANS, 18), fill=GREY)
-
-img.save("entry.png", format="PNG", optimize=True)
+canvas.save("entry.png", format="PNG", optimize=True)
 print("saved entry.png")

@@ -31,18 +31,16 @@ python3 main.py
 - Bounty: https://make.fun/bounty/news-image-20261118
 - Deadline: 20 Nov 2026, 00:00 UTC = 20 Nov 2026, 07:00 WIB
 - Prize: $250 total, shared by the 50 highest-ranked entries
-- Entry: public GitHub repo, MIT license, `main.py` at root
+- Entry: a public GitHub repository under the MIT license, with `main.py` at its root
 - Image: 1024x1024 PNG, ~101 KiB (limit 1 MiB), 6 stories
 
-## Local verification
+## Checking it locally
 
-```bash
-python3 main.py
-sha256sum /output/entry.png
-python3 main.py
-sha256sum /output/entry.png
+```sh
+python3 main.py && sha256sum /output/entry.png
+python3 main.py && sha256sum /output/entry.png
 ```
 
-Both runs must produce identical bytes. No network calls. `main.py` uses stdlib only (shutil/pathlib) and copies `entry.png` held in this repo.
+Run the program twice and the two hashes must come out the same. It makes no network requests and needs nothing beyond the Python standard library: it copies the `entry.png` stored in this repository into `/output/entry.png`.
 
-`build_image.py` is the local builder (PIL) used to create `entry.png`; it is not needed at run time.
+`build_image.py` is only the local PIL script that drew `entry.png`; the entry does not run it.

@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
-"""Write the 18 Nov 2026 world-news summary image to /output/entry.png.
+"""Copy the 18 November 2026 front page into the harness output folder.
 
-Deterministic, stdlib only, no network, no randomness.
-The image is held in this repo as entry.png; this program copies it.
+The PNG lives in this repository; the program only moves its bytes.
+No network, no randomness, no third-party packages.
 """
-
+import os
 import shutil
-from pathlib import Path
 
+HERE = os.path.dirname(os.path.abspath(__file__))
+SOURCE = os.path.join(HERE, "entry.png")
+TARGET = os.path.join("/output", "entry.png")
 
-def main() -> None:
-    src = Path(__file__).resolve().parent / "entry.png"
-    out = Path("/output/entry.png")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(src, out)
-
-
-if __name__ == "__main__":
-    main()
+os.makedirs(os.path.dirname(TARGET), exist_ok=True)
+shutil.copyfile(SOURCE, TARGET)
